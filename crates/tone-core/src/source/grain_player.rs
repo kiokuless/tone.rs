@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use crate::graph::AudioNode;
 use crate::source::player::AudioBuffer;
@@ -32,7 +32,10 @@ impl Grain {
 pub struct GrainPlayer {
     buffer: AudioBuffer,
     /// Current read position in the source buffer (fractional).
+    /// Updated on the audio thread, readable from any thread via AtomicU64.
     position: f64,
+    /// Atomic mirror of `position` for thread-safe reads (stored as f64 bits).
+    position_bits: AtomicU64,
     /// Pool of grains.
     grains: Vec<Grain>,
     /// Grain size in seconds.
@@ -56,6 +59,7 @@ impl GrainPlayer {
         Self {
             buffer,
             position: 0.0,
+            position_bits: AtomicU64::new(0.0f64.to_bits()),
             grains: (0..max_grains)
                 .map(|_| Grain {
                     buf_start: 0,
@@ -100,6 +104,12 @@ impl GrainPlayer {
     pub fn set_playback_rate(&self, rate: f32) {
         self.playback_rate_bits
             .store(rate.max(0.1).to_bits(), Ordering::Relaxed);
+    }
+
+    /// Get the current playback position in seconds (thread-safe).
+    pub fn get_position_seconds(&self) -> f64 {
+        let pos = f64::from_bits(self.position_bits.load(Ordering::Relaxed));
+        pos / self.sample_rate as f64
     }
 
     pub fn set_loop(&mut self, enabled: bool) {
@@ -183,6 +193,8 @@ impl AudioNode for GrainPlayer {
 
             // Advance source position based on playback rate
             self.position += rate;
+            self.position_bits
+                .store(self.position.to_bits(), Ordering::Relaxed);
             if self.position >= buf_len as f64 {
                 if self.loop_enabled {
                     self.position -= buf_len as f64;
@@ -234,6 +246,23 @@ mod tests {
         assert!(
             max > 0.1,
             "half-speed grain player should produce audio: max={max}"
+        );
+    }
+
+    #[test]
+    fn test_grain_player_position() {
+        let buf = test_buffer(); // 1 second at 44100Hz
+        let mut gp = GrainPlayer::new(buf, 44100);
+        assert_eq!(gp.get_position_seconds(), 0.0);
+
+        gp.start();
+        let mut output = [0.0f32; 4410]; // 0.1 seconds
+        gp.process(&[], &mut output, 44100);
+
+        let pos = gp.get_position_seconds();
+        assert!(
+            (pos - 0.1).abs() < 0.001,
+            "position should be ~0.1s after processing 4410 samples: pos={pos}"
         );
     }
 
