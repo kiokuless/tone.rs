@@ -6,6 +6,7 @@ pub mod engine;
 pub mod event;
 pub mod graph;
 pub mod instrument;
+pub mod mixer;
 pub mod signal;
 pub mod source;
 pub mod time;

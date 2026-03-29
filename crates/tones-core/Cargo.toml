@@ -4,3 +4,6 @@ description = "Platform-independent audio synthesis core inspired by Tone.js"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+
+[dependencies]
+hound = "3"
