@@ -109,10 +109,13 @@
       <div class="control-group">
         <label>Duration</label>
         <select id="duration">
-          <option value="0.15">Short (150ms)</option>
-          <option value="0.4" selected>Medium (400ms)</option>
-          <option value="1.0">Long (1s)</option>
-          <option value="2.0">Very Long (2s)</option>
+          <option value="16n">16th (16n)</option>
+          <option value="8n" selected>8th (8n)</option>
+          <option value="4n">Quarter (4n)</option>
+          <option value="2n">Half (2n)</option>
+          <option value="1n">Whole (1n)</option>
+          <option value="4t">Triplet (4t)</option>
+          <option value="4n.">Dotted (4n.)</option>
         </select>
       </div>
       <div class="control-group">
@@ -156,10 +159,10 @@
 
     async function playNote(note) {
       const waveform = document.getElementById("waveform").value;
-      const duration = parseFloat(document.getElementById("duration").value);
-      status.textContent = `Playing ${note.name} (${note.freq}Hz) — ${waveform}`;
+      const duration = document.getElementById("duration").value;
+      status.textContent = `Playing ${note.name} — ${waveform} — ${duration}`;
       try {
-        await invoke("play_note", { frequency: note.freq, waveform, duration });
+        await invoke("play_note", { note: note.name, waveform, duration });
       } catch (e) {
         status.textContent = "Error: " + e;
       }
