@@ -120,6 +120,11 @@ impl GrainPlayer {
         pos / self.sample_rate as f64
     }
 
+    /// Get the total duration of the buffer in seconds.
+    pub fn duration(&self) -> f64 {
+        self.buffer.duration()
+    }
+
     pub fn set_loop(&mut self, enabled: bool) {
         self.loop_enabled = enabled;
     }
