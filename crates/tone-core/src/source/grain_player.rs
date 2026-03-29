@@ -78,9 +78,17 @@ impl GrainPlayer {
         }
     }
 
+    /// Start playback from the beginning.
     pub fn start(&mut self) {
+        self.start_at(0.0);
+    }
+
+    /// Start playback from the given offset in seconds.
+    pub fn start_at(&mut self, offset_seconds: f64) {
         self.playing = true;
-        self.position = 0.0;
+        self.position = offset_seconds * self.sample_rate as f64;
+        self.position_bits
+            .store(self.position.to_bits(), Ordering::Relaxed);
         self.samples_until_next_grain = 0;
         for grain in &mut self.grains {
             grain.active = false;
@@ -263,6 +271,29 @@ mod tests {
         assert!(
             (pos - 0.1).abs() < 0.001,
             "position should be ~0.1s after processing 4410 samples: pos={pos}"
+        );
+    }
+
+    #[test]
+    fn test_grain_player_start_at_offset() {
+        let buf = test_buffer(); // 1 second at 44100Hz
+        let mut gp = GrainPlayer::new(buf, 44100);
+        gp.start_at(0.5); // start at 0.5 seconds
+
+        let pos = gp.get_position_seconds();
+        assert!(
+            (pos - 0.5).abs() < 0.001,
+            "position should be 0.5s after start_at(0.5): pos={pos}"
+        );
+
+        // Process a small buffer and verify position advanced from 0.5
+        let mut output = [0.0f32; 4410]; // 0.1 seconds
+        gp.process(&[], &mut output, 44100);
+
+        let pos = gp.get_position_seconds();
+        assert!(
+            (pos - 0.6).abs() < 0.001,
+            "position should be ~0.6s: pos={pos}"
         );
     }
 
