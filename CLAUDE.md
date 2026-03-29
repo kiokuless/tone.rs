@@ -69,6 +69,16 @@ Implements Tone.js's Param system with a sorted `Timeline` of automation events.
 
 Events at the same time are inserted in **append order** (`partition_point(|e| e.time() <= time)`). This matters for the Envelope, where a LinearRamp at t=0.1 must come before a SetTarget at t=0.1 for correct decay behavior.
 
+## Git Workflow
+
+新機能やバグ修正は必ずブランチを切って作業する。main への直接コミットは禁止。
+
+1. **ブランチ作成**: `git checkout -b feat/xxx` or `fix/xxx`
+2. **こまめにコミット**: 意味のある単位で変更するたびにコミットしてプッシュ (`git push -u origin branch-name`)
+3. **PR 作成**: 最初のプッシュ後に `gh pr create` で PR を作成。以降の変更はプッシュするだけで PR に反映される
+4. **PR description 更新**: 実装が進んだら `gh pr edit --body` で description を最新の状態に更新する
+5. **CI 確認**: プッシュごとに CI (test, clippy, fmt, build, wasm) が走るので、結果を確認してから次に進む
+
 ## Workspace
 
 - Edition 2024 (Rust 2024 — note: pattern matching rules differ from 2021)
