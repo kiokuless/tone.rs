@@ -1,20 +1,11 @@
-use std::fmt;
+use thiserror::Error;
 
 /// Error type for note name parsing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum NoteParseError {
+    #[error("invalid note: {0}")]
     InvalidNote(String),
 }
-
-impl fmt::Display for NoteParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            NoteParseError::InvalidNote(s) => write!(f, "invalid note: {s}"),
-        }
-    }
-}
-
-impl std::error::Error for NoteParseError {}
 
 /// Convert a MIDI note number to frequency in Hz.
 /// A4 (MIDI 69) = 440 Hz, 12-tone equal temperament.

@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
 use web_sys::{AudioContext, ScriptProcessorNode};
 
 use tone_core::clock::Transport;
@@ -197,6 +198,43 @@ impl TonesEngine {
         self.transport.stop();
         self.transport.clear_all();
     }
+}
+
+/// Fetch a WAV file from a URL and decode it into an AudioBuffer.
+///
+/// Returns a JS object with `data` (Float32Array) and `sampleRate` (number).
+#[wasm_bindgen(js_name = loadWav)]
+pub async fn load_wav(url: &str) -> Result<JsValue, JsValue> {
+    let window = web_sys::window().ok_or("no window")?;
+    let resp_value = JsFuture::from(window.fetch_with_str(url)).await?;
+    let resp: web_sys::Response = resp_value.dyn_into()?;
+
+    if !resp.ok() {
+        return Err(JsValue::from_str(&format!(
+            "fetch failed: {} {}",
+            resp.status(),
+            resp.status_text()
+        )));
+    }
+
+    let array_buffer = JsFuture::from(resp.array_buffer()?).await?;
+    let uint8_array = js_sys::Uint8Array::new(&array_buffer);
+    let bytes = uint8_array.to_vec();
+
+    let audio_buffer = tone_core::source::player::AudioBuffer::from_wav(&bytes)
+        .map_err(|e| JsValue::from_str(&e))?;
+
+    let result = js_sys::Object::new();
+    let data = js_sys::Float32Array::from(audio_buffer.data.as_slice());
+    js_sys::Reflect::set(&result, &"data".into(), &data)?;
+    js_sys::Reflect::set(
+        &result,
+        &"sampleRate".into(),
+        &audio_buffer.sample_rate.into(),
+    )?;
+    js_sys::Reflect::set(&result, &"duration".into(), &audio_buffer.duration().into())?;
+
+    Ok(result.into())
 }
 
 fn parse_waveform(s: &str) -> OscillatorType {
