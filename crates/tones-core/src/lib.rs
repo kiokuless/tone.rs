@@ -1,6 +1,8 @@
 pub mod backend;
+pub mod clock;
 pub mod component;
 pub mod engine;
+pub mod event;
 pub mod graph;
 pub mod instrument;
 pub mod signal;
