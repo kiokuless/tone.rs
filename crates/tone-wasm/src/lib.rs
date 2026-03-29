@@ -222,7 +222,7 @@ pub async fn load_wav(url: &str) -> Result<JsValue, JsValue> {
     let bytes = uint8_array.to_vec();
 
     let audio_buffer = tone_core::source::player::AudioBuffer::from_wav(&bytes)
-        .map_err(|e| JsValue::from_str(&e))?;
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let result = js_sys::Object::new();
     let data = js_sys::Float32Array::from(audio_buffer.data.as_slice());
