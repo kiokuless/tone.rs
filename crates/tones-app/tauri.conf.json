@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicholasrice/application-schemas/main/schemas/tauri/tauri.conf.schema.json",
+  "productName": "tones-rs",
+  "identifier": "com.tones-rs.app",
+  "build": {
+    "frontendDist": "frontend"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "tones-rs",
+        "width": 600,
+        "height": 500
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}

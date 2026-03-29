@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tones-rs</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 24px;
+    }
+    h1 { font-size: 20px; margin-bottom: 20px; color: #7f8fff; }
+    h2 { font-size: 14px; margin-bottom: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+    .section { margin-bottom: 24px; }
+
+    .piano {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 16px;
+    }
+    .key {
+      width: 48px;
+      height: 120px;
+      border: 1px solid #444;
+      border-radius: 0 0 4px 4px;
+      background: linear-gradient(to bottom, #e8e8e8, #d0d0d0);
+      color: #333;
+      font-size: 11px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.05s;
+    }
+    .key:active, .key.active {
+      background: linear-gradient(to bottom, #7f8fff, #5f6fdf);
+      color: #fff;
+    }
+    .key.black {
+      width: 32px;
+      height: 76px;
+      background: linear-gradient(to bottom, #333, #222);
+      color: #aaa;
+      margin-left: -16px;
+      margin-right: -16px;
+      z-index: 1;
+      border-color: #111;
+    }
+    .key.black:active, .key.black.active {
+      background: linear-gradient(to bottom, #5f6fdf, #4050bf);
+      color: #fff;
+    }
+
+    .controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    label { font-size: 12px; color: #888; }
+    select, input[type=range] {
+      background: #2a2a3e;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 13px;
+    }
+    input[type=range] { width: 140px; }
+
+    .status {
+      font-size: 12px;
+      color: #666;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>tones-rs</h1>
+
+  <div class="section">
+    <h2>Keyboard</h2>
+    <div class="piano" id="piano"></div>
+  </div>
+
+  <div class="section">
+    <h2>Controls</h2>
+    <div class="controls">
+      <div class="control-group">
+        <label>Waveform</label>
+        <select id="waveform">
+          <option value="sine">Sine</option>
+          <option value="square">Square</option>
+          <option value="sawtooth">Sawtooth</option>
+          <option value="triangle">Triangle</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Duration</label>
+        <select id="duration">
+          <option value="0.15">Short (150ms)</option>
+          <option value="0.4" selected>Medium (400ms)</option>
+          <option value="1.0">Long (1s)</option>
+          <option value="2.0">Very Long (2s)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Volume</label>
+        <input type="range" id="volume" min="0" max="100" value="30">
+      </div>
+    </div>
+  </div>
+
+  <div class="status" id="status">Ready</div>
+
+  <script>
+    const { invoke } = window.__TAURI__.core;
+
+    const notes = [
+      { name: "C4",  freq: 261.63, black: false },
+      { name: "C#4", freq: 277.18, black: true },
+      { name: "D4",  freq: 293.66, black: false },
+      { name: "D#4", freq: 311.13, black: true },
+      { name: "E4",  freq: 329.63, black: false },
+      { name: "F4",  freq: 349.23, black: false },
+      { name: "F#4", freq: 369.99, black: true },
+      { name: "G4",  freq: 392.00, black: false },
+      { name: "G#4", freq: 415.30, black: true },
+      { name: "A4",  freq: 440.00, black: false },
+      { name: "A#4", freq: 466.16, black: true },
+      { name: "B4",  freq: 493.88, black: false },
+      { name: "C5",  freq: 523.25, black: false },
+    ];
+
+    const piano = document.getElementById("piano");
+    const status = document.getElementById("status");
+
+    for (const note of notes) {
+      const key = document.createElement("div");
+      key.className = "key" + (note.black ? " black" : "");
+      key.textContent = note.name;
+      key.addEventListener("pointerdown", () => playNote(note));
+      piano.appendChild(key);
+    }
+
+    async function playNote(note) {
+      const waveform = document.getElementById("waveform").value;
+      const duration = parseFloat(document.getElementById("duration").value);
+      status.textContent = `Playing ${note.name} (${note.freq}Hz) — ${waveform}`;
+      try {
+        await invoke("play_note", { frequency: note.freq, waveform, duration });
+      } catch (e) {
+        status.textContent = "Error: " + e;
+      }
+    }
+
+    document.getElementById("volume").addEventListener("input", async (e) => {
+      const vol = parseInt(e.target.value) / 100;
+      await invoke("set_volume", { volume: vol });
+    });
+
+    // Keyboard shortcuts
+    const keyMap = {
+      "a": 0, "w": 1, "s": 2, "e": 3, "d": 4,
+      "f": 5, "t": 6, "g": 7, "y": 8, "h": 9,
+      "u": 10, "j": 11, "k": 12,
+    };
+    const activeKeys = new Set();
+
+    document.addEventListener("keydown", (e) => {
+      if (e.repeat) return;
+      const idx = keyMap[e.key.toLowerCase()];
+      if (idx !== undefined && !activeKeys.has(e.key)) {
+        activeKeys.add(e.key);
+        const keys = document.querySelectorAll(".key");
+        keys[idx]?.classList.add("active");
+        playNote(notes[idx]);
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      activeKeys.delete(e.key);
+      const idx = keyMap[e.key.toLowerCase()];
+      if (idx !== undefined) {
+        const keys = document.querySelectorAll(".key");
+        keys[idx]?.classList.remove("active");
+      }
+    });
+  </script>
+</body>
+</html>

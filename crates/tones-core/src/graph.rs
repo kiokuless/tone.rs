@@ -80,6 +80,13 @@ impl AudioGraph {
         self.dirty = true;
     }
 
+    /// Replace a node's implementation while keeping its ID and connections.
+    pub fn replace_node(&mut self, id: NodeId, node: Box<dyn AudioNode>) {
+        if let Some(entry) = self.nodes.iter_mut().find(|n| n.id == id) {
+            entry.node = node;
+        }
+    }
+
     /// Set which node's output is the final audio output.
     pub fn set_output(&mut self, id: NodeId) {
         self.output_node = Some(id);
