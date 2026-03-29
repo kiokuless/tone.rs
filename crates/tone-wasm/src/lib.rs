@@ -3,17 +3,17 @@ use std::sync::{Arc, Mutex};
 use wasm_bindgen::prelude::*;
 use web_sys::{AudioContext, ScriptProcessorNode};
 
-use tones_core::clock::Transport;
-use tones_core::component::gain::Gain;
-use tones_core::effect::delay::Delay;
-use tones_core::effect::distortion::Distortion;
-use tones_core::effect::filter::{Filter, FilterType};
-use tones_core::event::sequence::{Sequence, Step};
-use tones_core::graph::{AudioGraph, NodeId};
-use tones_core::instrument::Synth;
-use tones_core::source::oscillator::OscillatorType;
+use tone_core::clock::Transport;
+use tone_core::component::gain::Gain;
+use tone_core::effect::delay::Delay;
+use tone_core::effect::distortion::Distortion;
+use tone_core::effect::filter::{Filter, FilterType};
+use tone_core::event::sequence::{Sequence, Step};
+use tone_core::graph::{AudioGraph, NodeId};
+use tone_core::instrument::Synth;
+use tone_core::source::oscillator::OscillatorType;
 
-/// The main tones-rs engine for use in the browser via WASM.
+/// The main tone-rs engine for use in the browser via WASM.
 #[wasm_bindgen]
 pub struct TonesEngine {
     graph: Arc<Mutex<AudioGraph>>,

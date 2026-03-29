@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicholasrice/application-schemas/main/schemas/tauri/tauri.conf.schema.json",
-  "productName": "tones-rs",
-  "identifier": "com.tones-rs.app",
+  "productName": "tone-rs",
+  "identifier": "com.tone-rs.app",
   "build": {
     "frontendDist": "frontend"
   },
@@ -9,7 +9,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "tones-rs",
+        "title": "tone-rs",
         "width": 600,
         "height": 500
       }

@@ -1,10 +1,10 @@
 [package]
-name = "tones-cpal"
-description = "cpal audio backend for tones-rs"
+name = "tone-cpal"
+description = "cpal audio backend for tone-rs"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-tones-core = { path = "../tones-core" }
+tone-core = { path = "../tone-core" }
 cpal = "0.15"

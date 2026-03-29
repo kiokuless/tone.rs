@@ -1,6 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, Stream, StreamConfig};
-use tones_core::backend::{AudioBackend, AudioCallback};
+use tone_core::backend::{AudioBackend, AudioCallback};
 
 pub struct CpalBackend {
     device: Device,

@@ -1,13 +1,13 @@
 [package]
-name = "tones-app"
-description = "Tauri app for testing tones-rs"
+name = "tone-app"
+description = "Tauri app for testing tone-rs"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
-tones-core = { path = "../tones-core" }
-tones-cpal = { path = "../tones-cpal" }
+tone-core = { path = "../tone-core" }
+tone-cpal = { path = "../tone-cpal" }
 tauri = { version = "2", features = ["devtools"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

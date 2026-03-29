@@ -1,8 +1,8 @@
-use tones_core::component::envelope::AmplitudeEnvelope;
-use tones_core::component::gain::Gain;
-use tones_core::engine::AudioEngine;
-use tones_core::source::oscillator::{Oscillator, OscillatorType};
-use tones_cpal::CpalBackend;
+use tone_core::component::envelope::AmplitudeEnvelope;
+use tone_core::component::gain::Gain;
+use tone_core::engine::AudioEngine;
+use tone_core::source::oscillator::{Oscillator, OscillatorType};
+use tone_cpal::CpalBackend;
 
 fn main() {
     let mut backend = CpalBackend::new();

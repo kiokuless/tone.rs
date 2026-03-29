@@ -1,5 +1,5 @@
 [package]
-name = "tones-core"
+name = "tone-core"
 description = "Platform-independent audio synthesis core inspired by Tone.js"
 version.workspace = true
 edition.workspace = true

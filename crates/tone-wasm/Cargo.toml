@@ -1,6 +1,6 @@
 [package]
-name = "tones-wasm"
-description = "Web Audio backend for tones-rs (WASM)"
+name = "tone-wasm"
+description = "Web Audio backend for tone-rs (WASM)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +9,7 @@ license.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-tones-core = { path = "../tones-core" }
+tone-core = { path = "../tone-core" }
 wasm-bindgen = "0.2"
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
