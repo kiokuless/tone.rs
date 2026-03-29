@@ -50,11 +50,10 @@ pub struct GrainPlayer {
     playing: bool,
     /// Loop playback.
     loop_enabled: bool,
-    sample_rate: u32,
 }
 
 impl GrainPlayer {
-    pub fn new(buffer: AudioBuffer, sample_rate: u32) -> Self {
+    pub fn new(buffer: AudioBuffer, _sample_rate: u32) -> Self {
         let max_grains = 8;
         Self {
             buffer,
@@ -74,7 +73,6 @@ impl GrainPlayer {
             samples_until_next_grain: 0,
             playing: false,
             loop_enabled: true,
-            sample_rate,
         }
     }
 
@@ -86,7 +84,7 @@ impl GrainPlayer {
     /// Start playback from the given offset in seconds.
     pub fn start_at(&mut self, offset_seconds: f64) {
         self.playing = true;
-        self.position = offset_seconds * self.sample_rate as f64;
+        self.position = offset_seconds * self.buffer.sample_rate as f64;
         self.position_bits
             .store(self.position.to_bits(), Ordering::Relaxed);
         self.samples_until_next_grain = 0;
@@ -142,7 +140,7 @@ impl GrainPlayer {
     }
 
     fn spawn_grain(&mut self) {
-        let grain_samples = (self.grain_size() * self.sample_rate as f32) as usize;
+        let grain_samples = (self.grain_size() * self.buffer.sample_rate as f32) as usize;
         let buf_len = self.buffer.data.len();
         if buf_len == 0 || grain_samples == 0 {
             return;
@@ -169,7 +167,7 @@ impl AudioNode for GrainPlayer {
 
         let rate_ratio = self.buffer.sample_rate as f64 / sample_rate as f64;
         let rate = self.playback_rate() as f64 * rate_ratio;
-        let grain_samples = (self.grain_size() * self.sample_rate as f32) as usize;
+        let grain_samples = (self.grain_size() * self.buffer.sample_rate as f32) as usize;
         let hop = ((1.0 - self.overlap()) * grain_samples as f32) as usize;
         let hop = hop.max(1);
         let buf_len = self.buffer.data.len();
@@ -300,6 +298,32 @@ mod tests {
         assert!(
             (pos - 0.6).abs() < 0.001,
             "position should be ~0.6s: pos={pos}"
+        );
+    }
+
+    #[test]
+    fn test_grain_player_sample_rate_mismatch() {
+        // Buffer at 44100Hz, output at 48000Hz
+        let buf = test_buffer(); // 1 second at 44100Hz
+        let mut gp = GrainPlayer::new(buf, 48000);
+
+        // start_at(0.5) should set position to 0.5 * 44100 = 22050 (buffer SR)
+        gp.start_at(0.5);
+        let pos = gp.get_position_seconds();
+        assert!(
+            (pos - 0.5).abs() < 0.001,
+            "start_at should use buffer SR: pos={pos}"
+        );
+
+        // Process 4800 output samples (0.1s at 48000Hz)
+        // Position should advance by 0.1s worth of buffer samples
+        let mut output = [0.0f32; 4800];
+        gp.process(&[], &mut output, 48000);
+
+        let pos = gp.get_position_seconds();
+        assert!(
+            (pos - 0.6).abs() < 0.01,
+            "position should be ~0.6s after 0.1s of output: pos={pos}"
         );
     }
 
