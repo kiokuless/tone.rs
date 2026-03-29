@@ -54,7 +54,11 @@ impl Oscillator {
         match self.waveform {
             OscillatorType::Sine => (phase * 2.0 * PI).sin(),
             OscillatorType::Square => {
-                if phase < 0.5 { 1.0 } else { -1.0 }
+                if phase < 0.5 {
+                    1.0
+                } else {
+                    -1.0
+                }
             }
             OscillatorType::Sawtooth => 2.0 * phase - 1.0,
             OscillatorType::Triangle => {

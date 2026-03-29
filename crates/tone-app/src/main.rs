@@ -90,7 +90,11 @@ fn play_sequence(state: State<AppState>, notes: Vec<String>, waveform: String, b
     let steps: Vec<Step> = notes
         .iter()
         .map(|n| {
-            if n == "_" { Step::rest("8n") } else { Step::note(n, "8n") }
+            if n == "_" {
+                Step::rest("8n")
+            } else {
+                Step::note(n, "8n")
+            }
         })
         .collect();
 

@@ -64,13 +64,7 @@ impl Synth {
     /// Trigger attack and release with a note name and duration string.
     ///
     /// `duration` can be a time notation string like `"8n"`, `"4n"`, `"0.5"`, etc.
-    pub fn trigger_attack_release(
-        &mut self,
-        note: &str,
-        duration: &str,
-        time: f64,
-        velocity: f64,
-    ) {
+    pub fn trigger_attack_release(&mut self, note: &str, duration: &str, time: f64, velocity: f64) {
         if let Ok(freq) = note_to_frequency(note) {
             self.oscillator.set_frequency(freq as f32);
         }

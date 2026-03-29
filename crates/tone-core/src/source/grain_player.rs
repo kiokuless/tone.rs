@@ -231,7 +231,10 @@ mod tests {
 
         // At half speed, should still produce audio (grains still active)
         let max = output.iter().fold(0.0f32, |a, &b| a.max(b.abs()));
-        assert!(max > 0.1, "half-speed grain player should produce audio: max={max}");
+        assert!(
+            max > 0.1,
+            "half-speed grain player should produce audio: max={max}"
+        );
     }
 
     #[test]
@@ -245,6 +248,9 @@ mod tests {
         gp.process(&[], &mut output, 44100);
 
         let max = output.iter().fold(0.0f32, |a, &b| a.max(b.abs()));
-        assert!(max > 0.1, "double-speed grain player should produce audio: max={max}");
+        assert!(
+            max > 0.1,
+            "double-speed grain player should produce audio: max={max}"
+        );
     }
 }

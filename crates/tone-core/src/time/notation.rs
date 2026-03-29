@@ -88,8 +88,8 @@ fn parse_note_value(s: &str, bpm: f64) -> Result<f64, TimeParseError> {
     let quarter = 60.0 / bpm;
 
     // Check for dotted notation (trailing ".")
-    let (s_trimmed, dotted) = if s.ends_with('.') {
-        (&s[..s.len() - 1], true)
+    let (s_trimmed, dotted) = if let Some(stripped) = s.strip_suffix('.') {
+        (stripped, true)
     } else {
         (s, false)
     };

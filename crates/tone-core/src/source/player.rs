@@ -1,6 +1,6 @@
 use std::io::Cursor;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use crate::graph::AudioNode;
 
@@ -30,7 +30,7 @@ impl AudioBuffer {
                     .enumerate()
                     .filter(|(i, _)| {
                         // Take only the first channel for mono mixdown
-                        *i as u16 % spec.channels == 0
+                        (*i as u16).is_multiple_of(spec.channels)
                     })
                     .map(|(_, s)| s as f32 / max_val)
                     .collect()
@@ -39,7 +39,7 @@ impl AudioBuffer {
                 .into_samples::<f32>()
                 .filter_map(|s| s.ok())
                 .enumerate()
-                .filter(|(i, _)| *i as u16 % spec.channels == 0)
+                .filter(|(i, _)| (*i as u16).is_multiple_of(spec.channels))
                 .map(|(_, s)| s)
                 .collect(),
         };

@@ -1,7 +1,9 @@
-use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU8, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::time::notation::parse_time;
+
+type EventCallback = Arc<Mutex<Box<dyn FnMut(f64) + Send>>>;
 
 /// Playback state of the Transport.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,7 +35,7 @@ struct ScheduledEvent {
     /// Whether this event should be removed after firing once.
     once: bool,
     /// The callback, shared so it can be called from the audio thread.
-    callback: Arc<Mutex<Box<dyn FnMut(f64) + Send>>>,
+    callback: EventCallback,
 }
 
 /// Master transport for tempo-synced scheduling.
@@ -121,10 +123,8 @@ impl Transport {
     pub fn set_loop(&self, start: f64, end: f64) {
         self.loop_start_bits
             .store(start.to_bits(), Ordering::Relaxed);
-        self.loop_end_bits
-            .store(end.to_bits(), Ordering::Relaxed);
-        self.loop_enabled
-            .store(true, Ordering::Relaxed);
+        self.loop_end_bits.store(end.to_bits(), Ordering::Relaxed);
+        self.loop_enabled.store(true, Ordering::Relaxed);
     }
 
     /// Disable looping.
@@ -241,10 +241,8 @@ impl Transport {
         }
 
         // Advance position
-        let new_samples =
-            self.position_samples.load(Ordering::Relaxed) + num_samples as u64;
-        self.position_samples
-            .store(new_samples, Ordering::Relaxed);
+        let new_samples = self.position_samples.load(Ordering::Relaxed) + num_samples as u64;
+        self.position_samples.store(new_samples, Ordering::Relaxed);
 
         // Handle looping
         if self.loop_enabled.load(Ordering::Relaxed) {
@@ -300,9 +298,12 @@ mod tests {
         let counter = Arc::new(AtomicU32::new(0));
 
         let c = counter.clone();
-        t.schedule(move |_time| {
-            c.fetch_add(1, Ordering::Relaxed);
-        }, 0.5);
+        t.schedule(
+            move |_time| {
+                c.fetch_add(1, Ordering::Relaxed);
+            },
+            0.5,
+        );
 
         t.start();
 
@@ -361,9 +362,12 @@ mod tests {
         let counter = Arc::new(AtomicU32::new(0));
 
         let c = counter.clone();
-        t.schedule_once(move |_time| {
-            c.fetch_add(1, Ordering::Relaxed);
-        }, 0.5);
+        t.schedule_once(
+            move |_time| {
+                c.fetch_add(1, Ordering::Relaxed);
+            },
+            0.5,
+        );
 
         t.start();
         t.advance(22050); // 0.5s — should fire

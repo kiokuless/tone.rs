@@ -63,8 +63,7 @@ impl Delay {
 
 impl AudioNode for Delay {
     fn process(&mut self, input: &[f32], output: &mut [f32], _sample_rate: u32) {
-        let delay_samples =
-            (self.delay_time() * self.sample_rate as f32) as usize;
+        let delay_samples = (self.delay_time() * self.sample_rate as f32) as usize;
         let delay_samples = delay_samples.min(self.buffer.len() - 1).max(1);
         let feedback = self.feedback();
         let wet = self.wet();

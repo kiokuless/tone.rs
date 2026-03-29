@@ -76,9 +76,7 @@ impl TonesEngine {
             }
 
             // Write back to the output buffer
-            output_buffer
-                .copy_to_channel(&channel_data, 0)
-                .unwrap();
+            output_buffer.copy_to_channel(&channel_data, 0).unwrap();
         }) as Box<dyn FnMut(web_sys::AudioProcessingEvent)>);
 
         processor.set_onaudioprocess(Some(callback.as_ref().unchecked_ref()));
@@ -168,7 +166,11 @@ impl TonesEngine {
             .iter()
             .filter_map(|v| v.as_string())
             .map(|n| {
-                if n == "_" { Step::rest("8n") } else { Step::note(&n, "8n") }
+                if n == "_" {
+                    Step::rest("8n")
+                } else {
+                    Step::note(&n, "8n")
+                }
             })
             .collect();
 

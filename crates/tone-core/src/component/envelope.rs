@@ -90,8 +90,7 @@ impl Envelope {
                     self.sig
                         .set_target_at_time(decay_value, decay_start, time_constant);
                     // Ensure we reach the sustain level
-                    self.sig
-                        .set_value_at_time(decay_value, decay_start + decay);
+                    self.sig.set_value_at_time(decay_value, decay_start + decay);
                 }
             }
         }
@@ -164,7 +163,8 @@ impl AmplitudeEnvelope {
     }
 
     pub fn trigger_attack_release(&mut self, time: f64, duration: f64, velocity: f64) {
-        self.envelope.trigger_attack_release(time, duration, velocity);
+        self.envelope
+            .trigger_attack_release(time, duration, velocity);
     }
 }
 
@@ -210,10 +210,7 @@ mod tests {
 
         // After decay, should approach sustain level (0.5)
         let sustained = env.get_value_at_time(0.3);
-        assert!(
-            (sustained - 0.5).abs() < 0.05,
-            "sustained = {sustained}"
-        );
+        assert!((sustained - 0.5).abs() < 0.05, "sustained = {sustained}");
     }
 
     #[test]
@@ -256,10 +253,7 @@ mod tests {
 
         // With instant attack and sustain=1.0, output should equal input
         for (i, &sample) in output.iter().enumerate() {
-            assert!(
-                (sample - 1.0).abs() < 0.01,
-                "sample {i} = {sample}"
-            );
+            assert!((sample - 1.0).abs() < 0.01, "sample {i} = {sample}");
         }
     }
 }

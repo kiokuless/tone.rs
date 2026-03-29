@@ -81,7 +81,7 @@ pub fn note_to_midi(note: &str) -> Result<u8, NoteParseError> {
     // C-1 = 0 in some standards, but we use C0 = 12
     let midi = (octave as i16 + 1) * 12 + base_semitone as i16 + accidental as i16;
 
-    if midi < 0 || midi > 127 {
+    if !(0..=127).contains(&midi) {
         return Err(err());
     }
 

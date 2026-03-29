@@ -60,10 +60,7 @@ impl PolySynth {
 
     /// Find an inactive voice index, or steal the first one.
     fn find_voice(&self) -> usize {
-        self.voices
-            .iter()
-            .position(|v| !v.active)
-            .unwrap_or(0)
+        self.voices.iter().position(|v| !v.active).unwrap_or(0)
     }
 
     pub fn set_waveform(&mut self, waveform: OscillatorType) {
@@ -86,13 +83,7 @@ impl PolySynth {
     }
 
     /// Trigger attack and release for a note.
-    pub fn trigger_attack_release(
-        &mut self,
-        note: &str,
-        duration: &str,
-        time: f64,
-        velocity: f64,
-    ) {
+    pub fn trigger_attack_release(&mut self, note: &str, duration: &str, time: f64, velocity: f64) {
         let freq = match note_to_frequency(note) {
             Ok(f) => f as f32,
             Err(_) => return,
@@ -104,7 +95,9 @@ impl PolySynth {
         let voice = &mut self.voices[idx];
         voice.oscillator = Oscillator::new(self.waveform, freq);
         voice.envelope = AmplitudeEnvelope::new(0.02, 0.1, 0.6, 0.3);
-        voice.envelope.trigger_attack_release(time, dur_secs, velocity);
+        voice
+            .envelope
+            .trigger_attack_release(time, dur_secs, velocity);
         voice.active = true;
     }
 }

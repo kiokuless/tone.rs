@@ -45,11 +45,8 @@ impl Sequence {
 
     /// Schedule all steps on the given transport.
     /// Calls `on_step(note, duration_secs, time)` for each non-rest step.
-    pub fn schedule_on<F>(
-        &mut self,
-        transport: &Transport,
-        on_step: F,
-    ) where
+    pub fn schedule_on<F>(&mut self, transport: &Transport, on_step: F)
+    where
         F: Fn(String, f64, f64) + Send + 'static,
     {
         let bpm = transport.bpm();

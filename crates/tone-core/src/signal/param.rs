@@ -131,7 +131,7 @@ impl Param {
                 || matches!(after_opt, Some(AutomationEvent::SetValue { .. })) =>
             {
                 let previous = self.events.get_before(*t0);
-                let prev_val = previous.map_or(self.initial_value, |e| event_value(e));
+                let prev_val = previous.map_or(self.initial_value, event_value);
                 exponential_approach(*t0, prev_val, *target, *time_constant, time)
             }
 
@@ -146,7 +146,7 @@ impl Param {
                 // If before is setTarget, use the value before it started
                 if matches!(before_evt, AutomationEvent::SetTarget { .. }) {
                     let previous = self.events.get_before(before_time);
-                    before_val = previous.map_or(self.initial_value, |e| event_value(e));
+                    before_val = previous.map_or(self.initial_value, event_value);
                 }
 
                 match after_evt {

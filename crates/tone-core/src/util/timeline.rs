@@ -21,16 +21,18 @@ impl<T: TimelineEvent> Timeline<T> {
     /// Events with the same time are kept in insertion order.
     pub fn add(&mut self, event: T) {
         let time = event.time();
-        let pos = self
-            .events
-            .partition_point(|e| e.time() <= time);
+        let pos = self.events.partition_point(|e| e.time() <= time);
         self.events.insert(pos, event);
     }
 
     /// Get the last event at or before `time`.
     pub fn get(&self, time: f64) -> Option<&T> {
         let pos = self.events.partition_point(|e| e.time() <= time);
-        if pos > 0 { Some(&self.events[pos - 1]) } else { None }
+        if pos > 0 {
+            Some(&self.events[pos - 1])
+        } else {
+            None
+        }
     }
 
     /// Get the first event strictly after `time`.
@@ -42,7 +44,11 @@ impl<T: TimelineEvent> Timeline<T> {
     /// Get the last event strictly before `time`.
     pub fn get_before(&self, time: f64) -> Option<&T> {
         let pos = self.events.partition_point(|e| e.time() < time);
-        if pos > 0 { Some(&self.events[pos - 1]) } else { None }
+        if pos > 0 {
+            Some(&self.events[pos - 1])
+        } else {
+            None
+        }
     }
 
     /// Remove all events at or after `time`.
@@ -90,9 +96,18 @@ mod tests {
     #[test]
     fn test_add_and_get() {
         let mut tl = Timeline::new();
-        tl.add(TestEvent { time: 1.0, value: 10.0 });
-        tl.add(TestEvent { time: 3.0, value: 30.0 });
-        tl.add(TestEvent { time: 2.0, value: 20.0 });
+        tl.add(TestEvent {
+            time: 1.0,
+            value: 10.0,
+        });
+        tl.add(TestEvent {
+            time: 3.0,
+            value: 30.0,
+        });
+        tl.add(TestEvent {
+            time: 2.0,
+            value: 20.0,
+        });
 
         // get at 2.5 should return the event at 2.0
         let e = tl.get(2.5).unwrap();
@@ -110,9 +125,18 @@ mod tests {
     #[test]
     fn test_cancel_from() {
         let mut tl = Timeline::new();
-        tl.add(TestEvent { time: 1.0, value: 10.0 });
-        tl.add(TestEvent { time: 2.0, value: 20.0 });
-        tl.add(TestEvent { time: 3.0, value: 30.0 });
+        tl.add(TestEvent {
+            time: 1.0,
+            value: 10.0,
+        });
+        tl.add(TestEvent {
+            time: 2.0,
+            value: 20.0,
+        });
+        tl.add(TestEvent {
+            time: 3.0,
+            value: 30.0,
+        });
 
         tl.cancel_from(2.0);
         assert_eq!(tl.len(), 1);

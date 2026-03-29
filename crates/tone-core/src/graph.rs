@@ -6,6 +6,7 @@ pub struct NodeId(u64);
 
 static NEXT_NODE_ID: AtomicU64 = AtomicU64::new(0);
 
+#[allow(clippy::new_without_default)]
 impl NodeId {
     pub fn new() -> Self {
         Self(NEXT_NODE_ID.fetch_add(1, Ordering::Relaxed))
@@ -131,13 +132,13 @@ impl AudioGraph {
             output[..buffer_size].fill(0.0);
             let mut has_input = false;
             for edge in &self.edges {
-                if edge.to == id {
-                    if let Some(src_idx) = self.node_index(edge.from) {
-                        for (i, sample) in output[..buffer_size].iter_mut().enumerate() {
-                            *sample += self.node_buffers[src_idx][i];
-                        }
-                        has_input = true;
+                if edge.to == id
+                    && let Some(src_idx) = self.node_index(edge.from)
+                {
+                    for (i, sample) in output[..buffer_size].iter_mut().enumerate() {
+                        *sample += self.node_buffers[src_idx][i];
                     }
+                    has_input = true;
                 }
             }
 
@@ -151,15 +152,17 @@ impl AudioGraph {
             // Use raw pointer to avoid double borrow.
             let buf_ptr = self.node_buffers[node_idx].as_mut_ptr();
             let buf_slice = unsafe { std::slice::from_raw_parts_mut(buf_ptr, buffer_size) };
-            self.nodes[node_idx].node.process(input, buf_slice, sample_rate);
+            self.nodes[node_idx]
+                .node
+                .process(input, buf_slice, sample_rate);
         }
 
         // Copy output node's buffer to final output
-        if let Some(out_id) = self.output_node {
-            if let Some(out_idx) = self.node_index(out_id) {
-                output.copy_from_slice(&self.node_buffers[out_idx][..buffer_size]);
-                return;
-            }
+        if let Some(out_id) = self.output_node
+            && let Some(out_idx) = self.node_index(out_id)
+        {
+            output.copy_from_slice(&self.node_buffers[out_idx][..buffer_size]);
+            return;
         }
 
         output.fill(0.0);
@@ -212,5 +215,11 @@ impl AudioGraph {
         for buf in &mut self.node_buffers {
             buf.resize(buffer_size, 0.0);
         }
+    }
+}
+
+impl Default for AudioGraph {
+    fn default() -> Self {
+        Self::new()
     }
 }
