@@ -2,7 +2,14 @@ use std::io::Cursor;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
+use thiserror::Error;
+
 use crate::graph::AudioNode;
+
+/// Error type for WAV decoding.
+#[derive(Debug, Error)]
+#[error("WAV decode error: {0}")]
+pub struct WavDecodeError(#[from] pub hound::Error);
 
 /// An audio buffer decoded from a WAV file.
 #[derive(Clone)]
@@ -15,9 +22,9 @@ pub struct AudioBuffer {
 
 impl AudioBuffer {
     /// Decode a WAV file from raw bytes.
-    pub fn from_wav(bytes: &[u8]) -> Result<Self, String> {
+    pub fn from_wav(bytes: &[u8]) -> Result<Self, WavDecodeError> {
         let cursor = Cursor::new(bytes);
-        let reader = hound::WavReader::new(cursor).map_err(|e| format!("WAV decode error: {e}"))?;
+        let reader = hound::WavReader::new(cursor)?;
         let spec = reader.spec();
         let sample_rate = spec.sample_rate;
 
