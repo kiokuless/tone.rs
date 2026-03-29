@@ -117,7 +117,7 @@ impl GrainPlayer {
     /// Get the current playback position in seconds (thread-safe).
     pub fn get_position_seconds(&self) -> f64 {
         let pos = f64::from_bits(self.position_bits.load(Ordering::Relaxed));
-        pos / self.sample_rate as f64
+        pos / self.buffer.sample_rate as f64
     }
 
     /// Get the total duration of the buffer in seconds.
