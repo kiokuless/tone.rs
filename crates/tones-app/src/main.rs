@@ -6,6 +6,9 @@ use tauri::State;
 use tones_core::backend::AudioBackend;
 use tones_core::clock::Transport;
 use tones_core::component::gain::Gain;
+use tones_core::effect::delay::Delay;
+use tones_core::effect::distortion::Distortion;
+use tones_core::effect::filter::{Filter, FilterType};
 use tones_core::event::sequence::{Sequence, Step};
 use tones_core::graph::{AudioGraph, NodeId};
 use tones_core::instrument::Synth;
@@ -16,7 +19,11 @@ struct AppState {
     graph: Arc<Mutex<AudioGraph>>,
     transport: Arc<Transport>,
     synth_id: NodeId,
+    filter_id: NodeId,
+    delay_id: NodeId,
+    distortion_id: NodeId,
     gain_id: NodeId,
+    sample_rate: u32,
 }
 
 fn parse_waveform(s: &str) -> OscillatorType {
@@ -30,10 +37,8 @@ fn parse_waveform(s: &str) -> OscillatorType {
 
 #[tauri::command]
 fn play_note(state: State<AppState>, note: String, waveform: String, duration: String) {
-    let wf = parse_waveform(&waveform);
-
     let mut synth = Synth::new();
-    synth.set_waveform(wf);
+    synth.set_waveform(parse_waveform(&waveform));
     synth.trigger_attack_release(&note, &duration, 0.0, 1.0);
 
     let mut graph = state.graph.lock().unwrap();
@@ -47,6 +52,35 @@ fn set_volume(state: State<AppState>, volume: f64) {
 }
 
 #[tauri::command]
+fn set_filter(state: State<AppState>, filter_type: String, cutoff: f64, q: f64, wet: f64) {
+    let ft = match filter_type.as_str() {
+        "highpass" => FilterType::HighPass,
+        "bandpass" => FilterType::BandPass,
+        _ => FilterType::LowPass,
+    };
+    let filter = Filter::new(ft, cutoff as f32, q as f32);
+    filter.set_wet(wet as f32);
+    let mut graph = state.graph.lock().unwrap();
+    graph.replace_node(state.filter_id, Box::new(filter));
+}
+
+#[tauri::command]
+fn set_delay(state: State<AppState>, time: f64, feedback: f64, wet: f64) {
+    let delay = Delay::new(time as f32, feedback as f32, state.sample_rate);
+    delay.set_wet(wet as f32);
+    let mut graph = state.graph.lock().unwrap();
+    graph.replace_node(state.delay_id, Box::new(delay));
+}
+
+#[tauri::command]
+fn set_distortion(state: State<AppState>, drive: f64, wet: f64) {
+    let dist = Distortion::new(drive as f32);
+    dist.set_wet(wet as f32);
+    let mut graph = state.graph.lock().unwrap();
+    graph.replace_node(state.distortion_id, Box::new(dist));
+}
+
+#[tauri::command]
 fn play_sequence(state: State<AppState>, notes: Vec<String>, waveform: String, bpm: f64) {
     let transport = &state.transport;
     transport.stop();
@@ -56,11 +90,7 @@ fn play_sequence(state: State<AppState>, notes: Vec<String>, waveform: String, b
     let steps: Vec<Step> = notes
         .iter()
         .map(|n| {
-            if n == "_" {
-                Step::rest("8n")
-            } else {
-                Step::note(n, "8n")
-            }
+            if n == "_" { Step::rest("8n") } else { Step::note(n, "8n") }
         })
         .collect();
 
@@ -88,26 +118,31 @@ fn stop_sequence(state: State<AppState>) {
 }
 
 fn main() {
+    let mut backend = CpalBackend::new();
+    let sample_rate = backend.sample_rate();
+
     let mut graph = AudioGraph::new();
 
+    // Signal chain: Synth → Distortion → Filter → Delay → Gain → Output
     let synth_id = graph.add_node(Box::new(Synth::new()));
+    let distortion_id = graph.add_node(Box::new(Distortion::new(1.0))); // clean by default
+    let filter_id = graph.add_node(Box::new(Filter::new(FilterType::LowPass, 20000.0, 1.0)));
+    let delay_id = graph.add_node(Box::new(Delay::new(0.3, 0.0, sample_rate))); // off by default
     let gain_id = graph.add_node(Box::new(Gain::new(0.3)));
 
-    graph.connect(synth_id, gain_id);
+    graph.connect(synth_id, distortion_id);
+    graph.connect(distortion_id, filter_id);
+    graph.connect(filter_id, delay_id);
+    graph.connect(delay_id, gain_id);
     graph.set_output(gain_id);
 
     let graph = Arc::new(Mutex::new(graph));
-
-    let mut backend = CpalBackend::new();
-    let sample_rate = backend.sample_rate();
     let transport = Arc::new(Transport::new(sample_rate));
 
     let g = Arc::clone(&graph);
     let t = Arc::clone(&transport);
     backend.start(Box::new(move |buffer: &mut [f32]| {
-        // Advance transport timing
         t.advance(buffer.len() as u32);
-
         if let Ok(mut graph) = g.try_lock() {
             graph.process(buffer, sample_rate);
         } else {
@@ -121,7 +156,11 @@ fn main() {
         graph,
         transport,
         synth_id,
+        filter_id,
+        delay_id,
+        distortion_id,
         gain_id,
+        sample_rate,
     };
 
     tauri::Builder::default()
@@ -129,6 +168,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             play_note,
             set_volume,
+            set_filter,
+            set_delay,
+            set_distortion,
             play_sequence,
             stop_sequence,
         ])

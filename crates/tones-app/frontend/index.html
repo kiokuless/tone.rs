@@ -147,6 +147,36 @@
     </div>
   </div>
 
+  <div class="section">
+    <h2>Effects</h2>
+    <div class="controls">
+      <div class="control-group">
+        <label>Filter</label>
+        <select id="fx-filter-type">
+          <option value="lowpass">Low Pass</option>
+          <option value="highpass">High Pass</option>
+          <option value="bandpass">Band Pass</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Cutoff</label>
+        <input type="range" id="fx-cutoff" min="50" max="20000" value="20000" step="50">
+      </div>
+      <div class="control-group">
+        <label>Distortion</label>
+        <input type="range" id="fx-drive" min="10" max="200" value="10">
+      </div>
+      <div class="control-group">
+        <label>Delay</label>
+        <input type="range" id="fx-delay-wet" min="0" max="100" value="0">
+      </div>
+      <div class="control-group">
+        <label>Feedback</label>
+        <input type="range" id="fx-delay-fb" min="0" max="90" value="30">
+      </div>
+    </div>
+  </div>
+
   <div class="status" id="status">Ready</div>
 
   <script>
@@ -179,7 +209,11 @@
       piano.appendChild(key);
     }
 
+    let lastPlayTime = 0;
     async function playNote(note) {
+      const now = Date.now();
+      if (now - lastPlayTime < 50) return; // debounce
+      lastPlayTime = now;
       const waveform = document.getElementById("waveform").value;
       const duration = document.getElementById("duration").value;
       status.textContent = `Playing ${note.name} — ${waveform} — ${duration}`;
@@ -251,6 +285,32 @@
     document.getElementById("seq-stop").addEventListener("click", async () => {
       await invoke("stop_sequence");
       status.textContent = "Stopped";
+    });
+
+    // Effects controls
+    function updateFilter() {
+      const filterType = document.getElementById("fx-filter-type").value;
+      const cutoff = parseInt(document.getElementById("fx-cutoff").value);
+      invoke("set_filter", { filterType, cutoff, q: 1.0, wet: cutoff < 19999 ? 1.0 : 0.0 });
+    }
+    document.getElementById("fx-filter-type").addEventListener("change", updateFilter);
+    document.getElementById("fx-cutoff").addEventListener("input", updateFilter);
+
+    document.getElementById("fx-drive").addEventListener("input", (e) => {
+      const drive = parseInt(e.target.value) / 10;
+      invoke("set_distortion", { drive, wet: drive > 1.1 ? 1.0 : 0.0 });
+    });
+
+    document.getElementById("fx-delay-wet").addEventListener("input", (e) => {
+      const wet = parseInt(e.target.value) / 100;
+      const feedback = parseInt(document.getElementById("fx-delay-fb").value) / 100;
+      invoke("set_delay", { time: 0.3, feedback, wet });
+    });
+
+    document.getElementById("fx-delay-fb").addEventListener("input", (e) => {
+      const feedback = parseInt(e.target.value) / 100;
+      const wet = parseInt(document.getElementById("fx-delay-wet").value) / 100;
+      invoke("set_delay", { time: 0.3, feedback, wet });
     });
   </script>
 </body>
