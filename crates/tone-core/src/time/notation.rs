@@ -1,20 +1,11 @@
-use std::fmt;
+use thiserror::Error;
 
 /// Error type for time notation parsing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Error)]
 pub enum TimeParseError {
+    #[error("invalid time notation: {0}")]
     InvalidNotation(String),
 }
-
-impl fmt::Display for TimeParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            TimeParseError::InvalidNotation(s) => write!(f, "invalid time notation: {s}"),
-        }
-    }
-}
-
-impl std::error::Error for TimeParseError {}
 
 /// Parse a musical time notation string into seconds.
 ///

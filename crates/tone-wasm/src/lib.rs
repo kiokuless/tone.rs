@@ -227,12 +227,12 @@ pub async fn load_wav(url: &str) -> Result<JsValue, JsValue> {
     let result = js_sys::Object::new();
     let data = js_sys::Float32Array::from(audio_buffer.data.as_slice());
     js_sys::Reflect::set(&result, &"data".into(), &data)?;
-    js_sys::Reflect::set(&result, &"sampleRate".into(), &audio_buffer.sample_rate.into())?;
     js_sys::Reflect::set(
         &result,
-        &"duration".into(),
-        &audio_buffer.duration().into(),
+        &"sampleRate".into(),
+        &audio_buffer.sample_rate.into(),
     )?;
+    js_sys::Reflect::set(&result, &"duration".into(), &audio_buffer.duration().into())?;
 
     Ok(result.into())
 }
