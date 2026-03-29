@@ -130,13 +130,14 @@ impl Player {
 }
 
 impl AudioNode for Player {
-    fn process(&mut self, _input: &[f32], output: &mut [f32], _sample_rate: u32) {
+    fn process(&mut self, _input: &[f32], output: &mut [f32], sample_rate: u32) {
         if !self.playing.load(Ordering::Relaxed) || self.buffer.is_empty() {
             output.fill(0.0);
             return;
         }
 
-        let rate = self.playback_rate() as f64;
+        let rate_ratio = self.buffer.sample_rate as f64 / sample_rate as f64;
+        let rate = self.playback_rate() as f64 * rate_ratio;
         let buf_len = self.buffer.data.len() as f64;
         let loop_enabled = self.loop_enabled.load(Ordering::Relaxed);
 
@@ -240,5 +241,31 @@ mod tests {
         assert!(output[1] > output[0]); // increasing
         // Second output sample should be roughly data[2] = 0.02
         assert!((output[1] - 0.02).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_player_sample_rate_compensation() {
+        // Buffer at 44100Hz, output at 48000Hz
+        // Without compensation, playback would be 48000/44100 ≈ 1.088x faster
+        let sr_buf = 44100u32;
+        let sr_out = 48000u32;
+        let data: Vec<f32> = (0..sr_buf)
+            .map(|i| (2.0 * std::f32::consts::PI * 440.0 * i as f32 / sr_buf as f32).sin())
+            .collect();
+        let buf = AudioBuffer::from_samples(data, sr_buf);
+        let mut player = Player::new(buf);
+        player.start();
+
+        // Process 48000 samples (1 second at output rate)
+        let mut output = vec![0.0f32; sr_out as usize];
+        player.process(&[], &mut output, sr_out);
+
+        // With rate compensation, position should advance by ~44100 samples
+        // (covering the full 1-second buffer), not 48000
+        // The player should still be playing (not past end of 44100-sample buffer)
+        assert!(
+            player.playing.load(Ordering::Relaxed),
+            "player should still be playing after 1s of output"
+        );
     }
 }

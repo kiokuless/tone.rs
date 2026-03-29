@@ -161,13 +161,14 @@ impl GrainPlayer {
 }
 
 impl AudioNode for GrainPlayer {
-    fn process(&mut self, _input: &[f32], output: &mut [f32], _sample_rate: u32) {
+    fn process(&mut self, _input: &[f32], output: &mut [f32], sample_rate: u32) {
         if !self.playing || self.buffer.is_empty() {
             output.fill(0.0);
             return;
         }
 
-        let rate = self.playback_rate() as f64;
+        let rate_ratio = self.buffer.sample_rate as f64 / sample_rate as f64;
+        let rate = self.playback_rate() as f64 * rate_ratio;
         let grain_samples = (self.grain_size() * self.sample_rate as f32) as usize;
         let hop = ((1.0 - self.overlap()) * grain_samples as f32) as usize;
         let hop = hop.max(1);
@@ -199,7 +200,7 @@ impl AudioNode for GrainPlayer {
                 let window = grain.window(pos);
                 sum += self.buffer.data[buf_idx] * window;
 
-                grain.position += 1.0; // grains always read at original pitch
+                grain.position += rate_ratio; // compensate for sample rate difference
             }
 
             *sample = sum;
