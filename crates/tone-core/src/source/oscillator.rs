@@ -12,6 +12,32 @@ pub enum OscillatorType {
     Triangle,
 }
 
+/// Generate a single sample for the given waveform and phase (0.0 .. 1.0).
+///
+/// Returns a value in the range -1.0 .. 1.0. Shared by [`Oscillator`] and
+/// [`super::lfo::Lfo`].
+#[inline]
+pub fn sample_waveform(waveform: OscillatorType, phase: f32) -> f32 {
+    match waveform {
+        OscillatorType::Sine => (phase * 2.0 * PI).sin(),
+        OscillatorType::Square => {
+            if phase < 0.5 {
+                1.0
+            } else {
+                -1.0
+            }
+        }
+        OscillatorType::Sawtooth => 2.0 * phase - 1.0,
+        OscillatorType::Triangle => {
+            if phase < 0.5 {
+                4.0 * phase - 1.0
+            } else {
+                -4.0 * phase + 3.0
+            }
+        }
+    }
+}
+
 /// A basic oscillator that generates periodic waveforms.
 ///
 /// Frequency can be changed atomically from any thread.
@@ -51,24 +77,7 @@ impl Oscillator {
     /// Generate a sample for the given phase (0.0 .. 1.0).
     #[inline]
     fn generate(&self, phase: f32) -> f32 {
-        match self.waveform {
-            OscillatorType::Sine => (phase * 2.0 * PI).sin(),
-            OscillatorType::Square => {
-                if phase < 0.5 {
-                    1.0
-                } else {
-                    -1.0
-                }
-            }
-            OscillatorType::Sawtooth => 2.0 * phase - 1.0,
-            OscillatorType::Triangle => {
-                if phase < 0.5 {
-                    4.0 * phase - 1.0
-                } else {
-                    -4.0 * phase + 3.0
-                }
-            }
-        }
+        sample_waveform(self.waveform, phase)
     }
 }
 
