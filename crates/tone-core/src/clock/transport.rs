@@ -1,7 +1,10 @@
 use std::sync::atomic::{AtomicU8, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+use crate::time::context::TimeContext;
+use crate::time::expr::{TimeError, TimeExpr};
 use crate::time::notation::parse_time;
+use crate::time::value::{Bpm, Seconds};
 
 type EventCallback = Arc<Mutex<Box<dyn FnMut(f64) + Send>>>;
 
@@ -204,6 +207,53 @@ impl Transport {
         self.events.lock().unwrap().clear();
     }
 
+    // -- Typed API ----------------------------------------------------------
+
+    /// Schedule a callback at a specific transport time (typed).
+    pub fn schedule_at(
+        &self,
+        callback: impl FnMut(f64) + Send + 'static,
+        time: Seconds,
+    ) -> u64 {
+        self.schedule(callback, time.0)
+    }
+
+    /// Schedule a one-shot callback at a specific transport time (typed).
+    pub fn schedule_once_at(
+        &self,
+        callback: impl FnMut(f64) + Send + 'static,
+        time: Seconds,
+    ) -> u64 {
+        self.schedule_once(callback, time.0)
+    }
+
+    /// Schedule a repeating callback (typed).
+    pub fn schedule_repeat_at(
+        &self,
+        callback: impl FnMut(f64) + Send + 'static,
+        interval: Seconds,
+        start_time: Seconds,
+    ) -> u64 {
+        self.schedule_repeat(callback, interval.0, start_time.0)
+    }
+
+    /// Schedule a callback using a [`TimeExpr`].
+    ///
+    /// The expression is resolved against this transport's current state.
+    pub fn schedule_expr(
+        &self,
+        callback: impl FnMut(f64) + Send + 'static,
+        when: &TimeExpr,
+    ) -> Result<u64, TimeError> {
+        let time = when.to_seconds(self)?;
+        Ok(self.schedule(callback, time.0))
+    }
+
+    /// Get the current transport position as [`Seconds`].
+    pub fn position_seconds(&self) -> Seconds {
+        Seconds(self.position())
+    }
+
     /// Advance the transport by `num_samples` and fire any due events.
     ///
     /// Call this from the audio thread once per buffer. Events whose
@@ -254,6 +304,20 @@ impl Transport {
                     .store(loop_start_samples, Ordering::Relaxed);
             }
         }
+    }
+}
+
+impl TimeContext for Transport {
+    fn bpm(&self) -> Bpm {
+        Bpm(Transport::bpm(self))
+    }
+
+    fn sample_rate(&self) -> f64 {
+        self.sample_rate as f64
+    }
+
+    fn now_seconds(&self) -> Seconds {
+        self.position_seconds()
     }
 }
 

@@ -1,4 +1,13 @@
+//! Legacy frequency/MIDI conversion functions.
+//!
+//! These are thin wrappers around the new type system in [`super::value`] and
+//! [`super::expr`]. Prefer using [`Hertz`], [`MidiNote`], and [`PitchExpr`]
+//! directly in new code.
+
 use thiserror::Error;
+
+use super::expr::{PitchError, PitchExpr};
+use super::value::{Hertz, MidiNote};
 
 /// Error type for note name parsing.
 #[derive(Debug, Clone, PartialEq, Error)]
@@ -7,16 +16,23 @@ pub enum NoteParseError {
     InvalidNote(String),
 }
 
+impl From<PitchError> for NoteParseError {
+    fn from(e: PitchError) -> Self {
+        NoteParseError::InvalidNote(e.to_string())
+    }
+}
+
 /// Convert a MIDI note number to frequency in Hz.
 /// A4 (MIDI 69) = 440 Hz, 12-tone equal temperament.
+#[inline]
 pub fn midi_to_frequency(midi: u8) -> f64 {
-    440.0 * 2.0_f64.powf((midi as f64 - 69.0) / 12.0)
+    MidiNote(midi).to_hz().0
 }
 
 /// Convert a frequency in Hz to the nearest MIDI note number.
+#[inline]
 pub fn frequency_to_midi(freq: f64) -> u8 {
-    let midi = 69.0 + 12.0 * (freq / 440.0).log2();
-    midi.round().clamp(0.0, 127.0) as u8
+    Hertz(freq).to_midi().0
 }
 
 /// Parse a note name string to frequency in Hz.
@@ -24,59 +40,16 @@ pub fn frequency_to_midi(freq: f64) -> u8 {
 /// Supports formats like `"C4"`, `"A#4"`, `"Bb3"`, `"F#5"`.
 /// Octave range: 0-9. Middle C = C4.
 pub fn note_to_frequency(note: &str) -> Result<f64, NoteParseError> {
-    let midi = note_to_midi(note)?;
-    Ok(midi_to_frequency(midi))
+    let expr = PitchExpr::parse(note).map_err(NoteParseError::from)?;
+    Ok(expr.to_hz().map_err(NoteParseError::from)?.0)
 }
 
 /// Parse a note name string to a MIDI note number.
 ///
 /// C4 = 60, A4 = 69.
 pub fn note_to_midi(note: &str) -> Result<u8, NoteParseError> {
-    let err = || NoteParseError::InvalidNote(note.to_string());
-    let bytes = note.as_bytes();
-
-    if bytes.is_empty() {
-        return Err(err());
-    }
-
-    // Parse pitch class (C, D, E, F, G, A, B)
-    let base_semitone = match bytes[0].to_ascii_uppercase() {
-        b'C' => 0,
-        b'D' => 2,
-        b'E' => 4,
-        b'F' => 5,
-        b'G' => 7,
-        b'A' => 9,
-        b'B' => 11,
-        _ => return Err(err()),
-    };
-
-    // Parse optional accidental (# or b) and octave
-    let (accidental, rest) = if bytes.len() > 1 {
-        match bytes[1] {
-            b'#' => (1i8, &note[2..]),
-            b'b' => (-1i8, &note[2..]),
-            _ => (0i8, &note[1..]),
-        }
-    } else {
-        return Err(err()); // Need at least pitch + octave
-    };
-
-    // Parse octave number
-    let octave: i8 = rest.parse().map_err(|_| err())?;
-    if !(0..=9).contains(&octave) {
-        return Err(err());
-    }
-
-    // MIDI note: C4 = 60
-    // C-1 = 0 in some standards, but we use C0 = 12
-    let midi = (octave as i16 + 1) * 12 + base_semitone as i16 + accidental as i16;
-
-    if !(0..=127).contains(&midi) {
-        return Err(err());
-    }
-
-    Ok(midi as u8)
+    let expr = PitchExpr::parse(note).map_err(NoteParseError::from)?;
+    Ok(expr.to_midi().map_err(NoteParseError::from)?.0)
 }
 
 #[cfg(test)]
