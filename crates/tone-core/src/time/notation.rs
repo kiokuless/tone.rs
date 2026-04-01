@@ -1,10 +1,26 @@
+//! Legacy time notation parsing.
+//!
+//! This is a thin wrapper around [`TimeExpr`] and [`StaticTimeContext`].
+//! Prefer using [`TimeExpr::parse`] and [`TimeExpr::to_seconds`] directly
+//! in new code.
+
 use thiserror::Error;
+
+use super::context::StaticTimeContext;
+use super::expr::{TimeError, TimeExpr};
+use super::value::{Bpm, Seconds};
 
 /// Error type for time notation parsing.
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum TimeParseError {
     #[error("invalid time notation: {0}")]
     InvalidNotation(String),
+}
+
+impl From<TimeError> for TimeParseError {
+    fn from(e: TimeError) -> Self {
+        TimeParseError::InvalidNotation(e.to_string())
+    }
 }
 
 /// Parse a musical time notation string into seconds.
@@ -17,99 +33,9 @@ pub enum TimeParseError {
 /// - Bars:beats:sixteenths: `"1:2:3"` (assumes 4/4 time)
 /// - Hertz: `"2hz"` → 0.5 seconds (period)
 pub fn parse_time(notation: &str, bpm: f64) -> Result<f64, TimeParseError> {
-    let s = notation.trim();
-
-    if s.is_empty() {
-        return Err(TimeParseError::InvalidNotation(s.to_string()));
-    }
-
-    // Try plain number first
-    if let Ok(v) = s.parse::<f64>() {
-        return Ok(v);
-    }
-
-    // Hz notation: "2hz", "440hz"
-    if let Some(hz_str) = s.strip_suffix("hz") {
-        let hz: f64 = hz_str
-            .parse()
-            .map_err(|_| TimeParseError::InvalidNotation(s.to_string()))?;
-        if hz <= 0.0 {
-            return Err(TimeParseError::InvalidNotation(s.to_string()));
-        }
-        return Ok(1.0 / hz);
-    }
-
-    // BBS notation: "1:2:3", "1:0:0", "0:1:0"
-    if s.contains(':') {
-        return parse_bbs(s, bpm);
-    }
-
-    // Note value notation: "4n", "8t", "4n.", "2n"
-    parse_note_value(s, bpm)
-}
-
-/// Parse bars:beats:sixteenths notation (assumes 4/4 time).
-fn parse_bbs(s: &str, bpm: f64) -> Result<f64, TimeParseError> {
-    let parts: Vec<&str> = s.split(':').collect();
-    let err = || TimeParseError::InvalidNotation(s.to_string());
-
-    let quarter = 60.0 / bpm;
-
-    match parts.len() {
-        2 => {
-            // bars:beats
-            let bars: f64 = parts[0].parse().map_err(|_| err())?;
-            let beats: f64 = parts[1].parse().map_err(|_| err())?;
-            Ok((bars * 4.0 + beats) * quarter)
-        }
-        3 => {
-            // bars:beats:sixteenths
-            let bars: f64 = parts[0].parse().map_err(|_| err())?;
-            let beats: f64 = parts[1].parse().map_err(|_| err())?;
-            let sixteenths: f64 = parts[2].parse().map_err(|_| err())?;
-            Ok((bars * 4.0 + beats + sixteenths * 0.25) * quarter)
-        }
-        _ => Err(err()),
-    }
-}
-
-/// Parse note value notation.
-fn parse_note_value(s: &str, bpm: f64) -> Result<f64, TimeParseError> {
-    let err = || TimeParseError::InvalidNotation(s.to_string());
-    let quarter = 60.0 / bpm;
-
-    // Check for dotted notation (trailing ".")
-    let (s_trimmed, dotted) = if let Some(stripped) = s.strip_suffix('.') {
-        (stripped, true)
-    } else {
-        (s, false)
-    };
-
-    // Check suffix: "n" for normal, "t" for triplet
-    let (num_str, triplet) = if let Some(n) = s_trimmed.strip_suffix('n') {
-        (n, false)
-    } else if let Some(n) = s_trimmed.strip_suffix('t') {
-        (n, true)
-    } else {
-        return Err(err());
-    };
-
-    let divisor: f64 = num_str.parse().map_err(|_| err())?;
-    if divisor <= 0.0 {
-        return Err(err());
-    }
-
-    // A whole note (1n) = 4 quarter notes
-    let mut duration = (4.0 / divisor) * quarter;
-
-    if triplet {
-        duration *= 2.0 / 3.0;
-    }
-    if dotted {
-        duration *= 1.5;
-    }
-
-    Ok(duration)
+    let expr = TimeExpr::parse(notation).map_err(TimeParseError::from)?;
+    let ctx = StaticTimeContext::new(Bpm(bpm), 44_100.0, 192, Seconds::ZERO);
+    Ok(expr.to_seconds(&ctx).map_err(TimeParseError::from)?.0)
 }
 
 #[cfg(test)]
