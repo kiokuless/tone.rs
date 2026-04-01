@@ -90,26 +90,26 @@ impl TimeExpr {
         }
 
         // Explicit seconds suffix "s"
-        if let Some(num_str) = s.strip_suffix('s') {
-            if let Ok(v) = num_str.parse::<f64>() {
-                return Ok(TimeExpr::Seconds(Seconds(v)));
-            }
+        if let Some(num_str) = s.strip_suffix('s')
+            && let Ok(v) = num_str.parse::<f64>()
+        {
+            return Ok(TimeExpr::Seconds(Seconds(v)));
         }
 
         // Samples suffix "samples"
-        if let Some(num_str) = s.strip_suffix("samples") {
-            if let Ok(v) = num_str.parse::<f64>() {
-                return Ok(TimeExpr::Samples(Samples(v)));
-            }
+        if let Some(num_str) = s.strip_suffix("samples")
+            && let Ok(v) = num_str.parse::<f64>()
+        {
+            return Ok(TimeExpr::Samples(Samples(v)));
         }
 
         // Tick suffix "i"
-        if s.ends_with('i') && !s.ends_with("mi") {
-            if let Some(num_str) = s.strip_suffix('i') {
-                if let Ok(v) = num_str.parse::<f64>() {
-                    return Ok(TimeExpr::Ticks(Ticks(v)));
-                }
-            }
+        if s.ends_with('i')
+            && !s.ends_with("mi")
+            && let Some(num_str) = s.strip_suffix('i')
+            && let Ok(v) = num_str.parse::<f64>()
+        {
+            return Ok(TimeExpr::Ticks(Ticks(v)));
         }
 
         // Plain number → seconds
@@ -278,20 +278,20 @@ impl PitchExpr {
 
         // MIDI suffix: "69midi"
         if let Some(num_str) = s.strip_suffix("midi") {
-            if let Ok(v) = num_str.parse::<u8>() {
-                if v <= 127 {
-                    return Ok(PitchExpr::Midi(MidiNote(v)));
-                }
+            if let Ok(v) = num_str.parse::<u8>()
+                && v <= 127
+            {
+                return Ok(PitchExpr::Midi(MidiNote(v)));
             }
             return Err(PitchError::InvalidPitch(s.to_string()));
         }
 
         // Hz suffix: "440hz"
         if let Some(hz_str) = s.strip_suffix("hz") {
-            if let Ok(v) = hz_str.parse::<f64>() {
-                if v > 0.0 {
-                    return Ok(PitchExpr::Hertz(Hertz(v)));
-                }
+            if let Ok(v) = hz_str.parse::<f64>()
+                && v > 0.0
+            {
+                return Ok(PitchExpr::Hertz(Hertz(v)));
             }
             return Err(PitchError::InvalidPitch(s.to_string()));
         }
@@ -463,10 +463,7 @@ mod tests {
 
     #[test]
     fn test_parse_hz() {
-        assert_eq!(
-            TimeExpr::parse("2hz").unwrap(),
-            TimeExpr::Hertz(Hertz(2.0))
-        );
+        assert_eq!(TimeExpr::parse("2hz").unwrap(), TimeExpr::Hertz(Hertz(2.0)));
     }
 
     #[test]
