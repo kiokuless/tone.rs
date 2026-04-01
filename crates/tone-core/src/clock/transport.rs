@@ -210,11 +210,7 @@ impl Transport {
     // -- Typed API ----------------------------------------------------------
 
     /// Schedule a callback at a specific transport time (typed).
-    pub fn schedule_at(
-        &self,
-        callback: impl FnMut(f64) + Send + 'static,
-        time: Seconds,
-    ) -> u64 {
+    pub fn schedule_at(&self, callback: impl FnMut(f64) + Send + 'static, time: Seconds) -> u64 {
         self.schedule(callback, time.0)
     }
 
