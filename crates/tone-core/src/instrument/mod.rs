@@ -1,3 +1,4 @@
+pub mod fm_synth;
 pub mod poly_synth;
 pub mod synth;
 
